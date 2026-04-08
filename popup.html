@@ -2,119 +2,255 @@
 <html>
 <head>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       width: 280px;
-      padding: 16px;
-      font-family: system-ui, sans-serif;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       text-align: center;
+      color: hsl(224 71% 4%);
+      background: hsl(0 0% 100%);
     }
     #status {
-      margin-bottom: 8px;
-      font-size: 14px;
-      color: #555;
+      margin-bottom: 4px;
+      font-size: 13px;
+      color: hsl(220 9% 46%);
+      font-weight: 500;
     }
     #role-badge {
       font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
       margin-bottom: 4px;
       min-height: 16px;
+      border-radius: 9999px;
+      padding: 2px 10px;
+      display: inline-block;
     }
-    #role-badge.host { color: #1976d2; }
-    #role-badge.guest { color: #388e3c; }
+    #role-badge:empty { display: none; }
+    #role-badge.host {
+      background: hsl(217 91% 95%);
+      color: hsl(217 91% 45%);
+    }
+    #role-badge.guest {
+      background: hsl(142 76% 94%);
+      color: hsl(142 76% 30%);
+    }
+
+    /* Ring */
+    #ring-wrap {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin: 8px auto 14px;
+    }
+    #ring-wrap svg { width: 100%; height: 100%; }
     #timer {
-      font-size: 48px;
-      font-weight: bold;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 26px;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
+      letter-spacing: -0.5px;
+    }
+    .done #timer { color: hsl(0 84% 60%); }
+
+    /* Adjust +/- */
+    #adjust {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    #adjust-label {
+      font-size: 11px;
+      color: hsl(220 9% 46%);
+      font-weight: 500;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      font-family: inherit;
+      line-height: 1;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: hsl(222 47% 11%);
+      color: hsl(210 40% 98%);
+    }
+    .btn-primary:hover:not(:disabled) { background: hsl(222 47% 20%); }
+    .btn-outline {
+      background: transparent;
+      color: hsl(224 71% 4%);
+      border-color: hsl(220 13% 82%);
+    }
+    .btn-outline:hover:not(:disabled) { background: hsl(220 14% 96%); }
+    .btn-secondary {
+      background: hsl(220 14% 96%);
+      color: hsl(224 71% 4%);
+    }
+    .btn-secondary:hover:not(:disabled) { background: hsl(220 13% 90%); }
+    .btn-ghost {
+      background: transparent;
+      color: hsl(220 9% 46%);
+      border: none;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .btn-ghost:hover { background: hsl(220 14% 96%); color: hsl(224 71% 4%); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-icon { padding: 6px; border-radius: 6px; }
+
+    #controls {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #controls .btn { width: 100%; }
+
+    .separator {
+      height: 1px;
+      background: hsl(220 13% 91%);
       margin: 12px 0;
     }
-    button {
-      padding: 8px 20px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #fff;
-      margin: 4px;
+
+    #lobby {
+      display: flex;
+      gap: 8px;
     }
-    button:hover { background: #f0f0f0; }
-    button:disabled { opacity: 0.35; cursor: default; }
-    button:disabled:hover { background: #fff; }
-    #startBtn { color: #2d8c2d; border-color: #2d8c2d; }
-    #resetBtn { color: #b33; border-color: #b33; }
-    .done #timer { color: #b33; }
-    #lobby { margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px; }
-    #lobby button { font-size: 13px; padding: 6px 16px; }
-    #join-section { margin-top: 8px; display: none; }
-    #join-section input {
-      padding: 6px 8px;
+    #lobby .btn { flex: 1; }
+
+    #join-section {
+      display: none;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    #codeInput {
+      flex: 1;
+      padding: 8px 10px;
       font-size: 13px;
-      width: 80px;
+      border: 1px solid hsl(220 13% 82%);
+      border-radius: 6px;
+      background: transparent;
+      color: hsl(224 71% 4%);
       text-transform: uppercase;
       text-align: center;
       letter-spacing: 2px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
     }
-    #room-info { display: none; margin-top: 12px; }
+    #codeInput:focus {
+      border-color: hsl(222 47% 11%);
+      box-shadow: 0 0 0 2px hsl(222 47% 11% / 0.1);
+    }
+    #codeInput::placeholder { color: hsl(220 9% 70%); }
+
+    /* Room info */
+    #room-info {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
     #share-label {
-      font-size: 11px;
-      color: #999;
-      margin-bottom: 6px;
+      font-size: 12px;
+      color: hsl(220 9% 46%);
       font-weight: 500;
     }
     #code-pill {
       display: flex;
-      align-items: center;
-      border: 1px solid #e0e0e0;
+      align-items: stretch;
+      background: hsl(220 14% 96%);
+      border: 1px solid hsl(220 13% 91%);
       border-radius: 9999px;
       overflow: hidden;
-      margin-bottom: 8px;
+      width: 100%;
     }
     #room-code {
       flex: 1;
       font-weight: 600;
-      font-size: 15px;
+      font-size: 14px;
       letter-spacing: 3px;
-      color: #1a1a2e;
+      color: hsl(224 71% 4%);
       padding: 8px 16px;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #copyBtn {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 8px 14px;
+      width: 42px;
+      padding: 0;
       border: none;
-      border-left: 1px solid #e0e0e0;
-      border-radius: 0;
-      background: #e8f0fe;
-      color: #1a73e8;
+      border-left: 1px solid hsl(220 13% 91%);
+      border-radius: 0 9999px 9999px 0;
+      background: hsl(217 91% 60%);
+      color: #fff;
       cursor: pointer;
       margin: 0;
       transition: background 0.15s;
     }
-    #copyBtn:hover { background: #d2e3fc; }
-    #copyBtn.copied { background: #e6f4ea; color: #34a853; }
+    #copyBtn:hover { background: hsl(217 91% 50%); }
+    #copyBtn.copied { background: hsl(142 76% 40%); }
   </style>
 </head>
 <body>
   <div id="status">Looking for activity time...</div>
   <div id="role-badge"></div>
-  <div id="timer">--:--:--</div>
+
+  <div id="ring-wrap">
+    <svg viewBox="0 0 128 128">
+      <circle cx="64" cy="64" r="54" fill="none" stroke="hsl(217 10% 85%)" stroke-width="8" opacity="0.25"/>
+      <circle id="ring-fg" cx="64" cy="64" r="54" fill="none" stroke="hsl(217 91% 60%)" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="339.292" stroke-dashoffset="0" transform="rotate(-90 64 64)"
+        style="transition: stroke-dashoffset 0.3s ease;"/>
+    </svg>
+    <div id="timer">--:--:--</div>
+  </div>
+
+  <div id="adjust">
+    <button id="minusBtn" class="btn btn-outline btn-icon" title="Remove 1 minute">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <span id="adjust-label">Adjust time</span>
+    <button id="plusBtn" class="btn btn-outline btn-icon" title="Add 1 minute">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
   <div id="controls">
-    <button id="startBtn" disabled>Start</button>
-    <button id="resetBtn">Reset</button>
+    <button id="startBtn" class="btn btn-primary" disabled>Start</button>
+    <button id="resetBtn" class="btn btn-outline">Reset</button>
   </div>
+
+  <div class="separator"></div>
+
   <div id="lobby">
-    <button id="hostBtn">Host</button>
-    <button id="joinToggleBtn">Join</button>
-    <div id="join-section">
-      <input id="codeInput" type="text" placeholder="CODE" maxlength="6" />
-      <button id="joinBtn">Go</button>
-    </div>
+    <button id="hostBtn" class="btn btn-secondary">Host</button>
+    <button id="joinToggleBtn" class="btn btn-secondary">Join</button>
   </div>
+  <div id="join-section">
+    <input id="codeInput" type="text" placeholder="ABCDEF" maxlength="6" />
+    <button id="joinBtn" class="btn btn-primary btn-sm">Go</button>
+  </div>
+
   <div id="room-info">
     <div id="share-label">Share Timer</div>
     <div id="code-pill">
@@ -123,8 +259,9 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
       </button>
     </div>
-    <button id="leaveBtn">Leave</button>
+    <button id="leaveBtn" class="btn btn-ghost btn-sm">Leave Room</button>
   </div>
+
   <script src="config.js"></script>
   <script src="supabase.js"></script>
   <script src="popup.js"></script>

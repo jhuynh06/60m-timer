@@ -1,7 +1,16 @@
+const RING_R = 54;
+const RING_C = 2 * Math.PI * RING_R;
+
+const COPY_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const CHECK_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
 const statusEl = document.getElementById("status");
 const timerEl = document.getElementById("timer");
+const ringFg = document.getElementById("ring-fg");
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
+const plusBtn = document.getElementById("plusBtn");
+const minusBtn = document.getElementById("minusBtn");
 const hostBtn = document.getElementById("hostBtn");
 const joinToggleBtn = document.getElementById("joinToggleBtn");
 const joinSection = document.getElementById("join-section");
@@ -21,7 +30,6 @@ let running = false;
 let role = null;
 let roomCode = null;
 let hostId = null;
-let listener = null;
 
 function formatTime(secs) {
   const h = Math.floor(secs / 3600);
@@ -30,27 +38,46 @@ function formatTime(secs) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function updateRing() {
+  const progress = totalSeconds > 0 ? remainingSeconds / totalSeconds : 1;
+  const offset = RING_C * (1 - progress);
+  ringFg.setAttribute("stroke-dashoffset", offset);
+  if (remainingSeconds === 0 && totalSeconds > 0) {
+    ringFg.setAttribute("stroke", "hsl(0 84% 60%)");
+  } else if (remainingSeconds < totalSeconds * 0.15) {
+    ringFg.setAttribute("stroke", "hsl(25 95% 53%)");
+  } else {
+    ringFg.setAttribute("stroke", "hsl(217 91% 60%)");
+  }
+}
+
 function render() {
   timerEl.textContent = formatTime(remainingSeconds);
   document.body.classList.toggle("done", remainingSeconds === 0 && totalSeconds > 0 && !running);
   startBtn.textContent = running ? "Pause" : "Start";
+  updateRing();
 
   if (role === "guest") {
     startBtn.disabled = true;
     resetBtn.disabled = true;
+    plusBtn.disabled = true;
+    minusBtn.disabled = true;
   } else {
     startBtn.disabled = !totalSeconds;
     resetBtn.disabled = false;
+    plusBtn.disabled = false;
+    minusBtn.disabled = false;
   }
 
   if (role) {
     lobbyDiv.style.display = "none";
-    roomInfoDiv.style.display = "block";
+    joinSection.style.display = "none";
+    roomInfoDiv.style.display = "flex";
     roomCodeSpan.textContent = roomCode;
-    roleBadge.textContent = role === "host" ? "Host" : "Guest";
+    roleBadge.textContent = role === "host" ? "HOST" : "GUEST";
     roleBadge.className = role;
   } else {
-    lobbyDiv.style.display = "block";
+    lobbyDiv.style.display = "flex";
     roomInfoDiv.style.display = "none";
     roleBadge.textContent = "";
     roleBadge.className = "";
@@ -103,6 +130,29 @@ resetBtn.addEventListener("click", () => {
   render();
 });
 
+// --- +/- time adjust ---
+plusBtn.addEventListener("click", () => {
+  if (role === "guest") return;
+  remainingSeconds += 60;
+  totalSeconds += 60;
+  chrome.storage.local.set({ timerRemaining: remainingSeconds });
+  if (role === "host") syncState(roomCode, { remaining: remainingSeconds });
+  render();
+});
+
+minusBtn.addEventListener("click", () => {
+  if (role === "guest") return;
+  if (remainingSeconds > 60) {
+    remainingSeconds -= 60;
+    if (totalSeconds > 60) totalSeconds -= 60;
+  } else {
+    remainingSeconds = 0;
+  }
+  chrome.storage.local.set({ timerRemaining: remainingSeconds });
+  if (role === "host") syncState(roomCode, { remaining: remainingSeconds });
+  render();
+});
+
 // --- Host ---
 hostBtn.addEventListener("click", async () => {
   if (!totalSeconds) return;
@@ -123,8 +173,8 @@ hostBtn.addEventListener("click", async () => {
 
 // --- Join ---
 joinToggleBtn.addEventListener("click", () => {
-  const visible = joinSection.style.display !== "none" && joinSection.style.display !== "";
-  joinSection.style.display = visible ? "none" : "block";
+  const visible = joinSection.style.display === "flex";
+  joinSection.style.display = visible ? "none" : "flex";
   if (!visible) codeInput.focus();
 });
 
@@ -144,7 +194,6 @@ joinBtn.addEventListener("click", async () => {
     clearInterval(interval);
     interval = null;
 
-    // Poll for guest updates
     interval = setInterval(async () => {
       if (role !== "guest") return;
       try {
@@ -171,10 +220,10 @@ codeInput.addEventListener("keydown", (e) => {
 copyBtn.addEventListener("click", () => {
   navigator.clipboard.writeText(roomCode);
   copyBtn.classList.add("copied");
-  copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  copyBtn.innerHTML = CHECK_ICON;
   setTimeout(() => {
     copyBtn.classList.remove("copied");
-    copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+    copyBtn.innerHTML = COPY_ICON;
   }, 1500);
 });
 
@@ -191,6 +240,8 @@ leaveBtn.addEventListener("click", async () => {
   running = false;
   chrome.storage.local.remove(["lobbyRole", "lobbyRoomCode", "lobbyHostId"]);
   joinSection.style.display = "none";
+  hostBtn.textContent = "Host";
+  joinBtn.textContent = "Go";
   render();
 });
 
@@ -207,14 +258,12 @@ chrome.storage.local.get(["activityMinutes", "timerRemaining", "timerRunning", "
       remainingSeconds = totalSeconds;
     }
 
-    // Restore lobby state
     if (data.lobbyRole && data.lobbyRoomCode) {
       role = data.lobbyRole;
       roomCode = data.lobbyRoomCode;
       hostId = data.lobbyHostId || null;
 
       if (role === "guest") {
-        // Resume polling
         interval = setInterval(async () => {
           if (role !== "guest") return;
           try {
