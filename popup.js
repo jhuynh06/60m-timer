@@ -1,0 +1,236 @@
+const statusEl = document.getElementById("status");
+const timerEl = document.getElementById("timer");
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+const hostBtn = document.getElementById("hostBtn");
+const joinToggleBtn = document.getElementById("joinToggleBtn");
+const joinSection = document.getElementById("join-section");
+const codeInput = document.getElementById("codeInput");
+const joinBtn = document.getElementById("joinBtn");
+const lobbyDiv = document.getElementById("lobby");
+const roomInfoDiv = document.getElementById("room-info");
+const roomCodeSpan = document.getElementById("room-code");
+const leaveBtn = document.getElementById("leaveBtn");
+const roleBadge = document.getElementById("role-badge");
+
+let totalSeconds = 0;
+let remainingSeconds = 0;
+let interval = null;
+let running = false;
+let role = null;
+let roomCode = null;
+let hostId = null;
+let listener = null;
+
+function formatTime(secs) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function render() {
+  timerEl.textContent = formatTime(remainingSeconds);
+  document.body.classList.toggle("done", remainingSeconds === 0 && totalSeconds > 0 && !running);
+  startBtn.textContent = running ? "Pause" : "Start";
+
+  if (role === "guest") {
+    startBtn.disabled = true;
+    resetBtn.disabled = true;
+  } else {
+    startBtn.disabled = !totalSeconds;
+    resetBtn.disabled = false;
+  }
+
+  if (role) {
+    lobbyDiv.style.display = "none";
+    roomInfoDiv.style.display = "block";
+    roomCodeSpan.textContent = roomCode;
+    roleBadge.textContent = role === "host" ? "Host" : "Guest";
+    roleBadge.className = role;
+  } else {
+    lobbyDiv.style.display = "block";
+    roomInfoDiv.style.display = "none";
+    roleBadge.textContent = "";
+    roleBadge.className = "";
+  }
+}
+
+function tick() {
+  if (remainingSeconds <= 0) {
+    clearInterval(interval);
+    interval = null;
+    running = false;
+    chrome.storage.local.set({ timerRemaining: 0, timerRunning: false });
+    if (role === "host") syncState(roomCode, { remaining: 0, running: false });
+    render();
+    return;
+  }
+  remainingSeconds--;
+  chrome.storage.local.set({ timerRemaining: remainingSeconds, timerRunning: running });
+  if (role === "host") syncState(roomCode, { remaining: remainingSeconds, running: true });
+  render();
+}
+
+// --- Timer controls ---
+startBtn.addEventListener("click", () => {
+  if (role === "guest") return;
+  if (running) {
+    clearInterval(interval);
+    interval = null;
+    running = false;
+    chrome.storage.local.set({ timerRemaining: remainingSeconds, timerRunning: false });
+    if (role === "host") syncState(roomCode, { remaining: remainingSeconds, running: false });
+  } else {
+    if (remainingSeconds <= 0) remainingSeconds = totalSeconds;
+    running = true;
+    interval = setInterval(tick, 1000);
+    chrome.storage.local.set({ timerRemaining: remainingSeconds, timerRunning: true });
+    if (role === "host") syncState(roomCode, { remaining: remainingSeconds, running: true });
+  }
+  render();
+});
+
+resetBtn.addEventListener("click", () => {
+  if (role === "guest") return;
+  clearInterval(interval);
+  interval = null;
+  running = false;
+  remainingSeconds = totalSeconds;
+  chrome.storage.local.set({ timerRemaining: remainingSeconds, timerRunning: false });
+  if (role === "host") syncState(roomCode, { remaining: remainingSeconds, running: false });
+  render();
+});
+
+// --- Host ---
+hostBtn.addEventListener("click", async () => {
+  if (!totalSeconds) return;
+  try {
+    hostBtn.textContent = "...";
+    const result = await createRoom(totalSeconds / 60);
+    roomCode = result.roomCode;
+    hostId = result.hostId;
+    role = "host";
+    chrome.storage.local.set({ lobbyRole: "host", lobbyRoomCode: roomCode, lobbyHostId: hostId });
+    syncState(roomCode, { remaining: remainingSeconds, running });
+    render();
+  } catch (e) {
+    hostBtn.textContent = "Host";
+    console.error("Failed to host:", e);
+  }
+});
+
+// --- Join ---
+joinToggleBtn.addEventListener("click", () => {
+  const visible = joinSection.style.display !== "none" && joinSection.style.display !== "";
+  joinSection.style.display = visible ? "none" : "block";
+  if (!visible) codeInput.focus();
+});
+
+joinBtn.addEventListener("click", async () => {
+  const code = codeInput.value.trim().toUpperCase();
+  if (code.length !== 6) return;
+  try {
+    joinBtn.textContent = "...";
+    const roomData = await getRoom(code);
+    roomCode = code;
+    role = "guest";
+    remainingSeconds = roomData.remaining;
+    running = roomData.running;
+    totalSeconds = roomData.activity_minutes * 60;
+    chrome.storage.local.set({ lobbyRole: "guest", lobbyRoomCode: roomCode });
+
+    clearInterval(interval);
+    interval = null;
+
+    // Poll for guest updates
+    interval = setInterval(async () => {
+      if (role !== "guest") return;
+      try {
+        const data = await getRoom(roomCode);
+        remainingSeconds = data.remaining;
+        running = data.running;
+        render();
+      } catch (e) { /* ignore */ }
+    }, 1500);
+
+    statusEl.textContent = `Activity Time: ${roomData.activity_minutes} min`;
+    render();
+  } catch (e) {
+    joinBtn.textContent = "Go";
+    console.error("Failed to join:", e);
+  }
+});
+
+codeInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") joinBtn.click();
+});
+
+// --- Room code copy ---
+roomCodeSpan.addEventListener("click", () => {
+  navigator.clipboard.writeText(roomCode);
+  roomCodeSpan.textContent = "Copied!";
+  setTimeout(() => { roomCodeSpan.textContent = roomCode; }, 1000);
+});
+
+// --- Leave ---
+leaveBtn.addEventListener("click", async () => {
+  if (role === "host") {
+    try { await deleteRoom(roomCode); } catch (e) { /* ignore */ }
+  }
+  clearInterval(interval);
+  interval = null;
+  role = null;
+  roomCode = null;
+  hostId = null;
+  running = false;
+  chrome.storage.local.remove(["lobbyRole", "lobbyRoomCode", "lobbyHostId"]);
+  joinSection.style.display = "none";
+  render();
+});
+
+// --- Load initial state ---
+chrome.storage.local.get(["activityMinutes", "timerRemaining", "timerRunning", "lobbyRole", "lobbyRoomCode", "lobbyHostId"], (data) => {
+  if (data.activityMinutes) {
+    totalSeconds = data.activityMinutes * 60;
+    statusEl.textContent = `Activity Time: ${data.activityMinutes} min`;
+    startBtn.disabled = false;
+
+    if (data.timerRemaining != null) {
+      remainingSeconds = data.timerRemaining;
+    } else {
+      remainingSeconds = totalSeconds;
+    }
+
+    // Restore lobby state
+    if (data.lobbyRole && data.lobbyRoomCode) {
+      role = data.lobbyRole;
+      roomCode = data.lobbyRoomCode;
+      hostId = data.lobbyHostId || null;
+
+      if (role === "guest") {
+        // Resume polling
+        interval = setInterval(async () => {
+          if (role !== "guest") return;
+          try {
+            const roomData = await getRoom(roomCode);
+            remainingSeconds = roomData.remaining;
+            running = roomData.running;
+            render();
+          } catch (e) { /* ignore */ }
+        }, 1500);
+      } else if (data.timerRunning) {
+        running = true;
+        interval = setInterval(tick, 1000);
+      }
+    } else if (data.timerRunning) {
+      running = true;
+      interval = setInterval(tick, 1000);
+    }
+
+    render();
+  } else {
+    statusEl.textContent = "No activity time found on this page.";
+    timerEl.textContent = "--:--:--";
+  }
+});

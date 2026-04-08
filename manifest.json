@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Canvas Activity Timer",
+  "version": "2.0",
+  "description": "Parses 'Activity Time: x minutes' from Canvas assignments and sets a shared countdown timer.",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": [
+    "https://*.supabase.co/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://canvas.calpoly.edu/*", "*://*.instructure.com/*"],
+      "js": ["config.js", "supabase.js", "content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  }
+}

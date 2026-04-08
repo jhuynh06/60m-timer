@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 280px;
+      padding: 16px;
+      font-family: system-ui, sans-serif;
+      text-align: center;
+    }
+    #status {
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #555;
+    }
+    #role-badge {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      min-height: 16px;
+    }
+    #role-badge.host { color: #1976d2; }
+    #role-badge.guest { color: #388e3c; }
+    #timer {
+      font-size: 48px;
+      font-weight: bold;
+      font-variant-numeric: tabular-nums;
+      margin: 12px 0;
+    }
+    button {
+      padding: 8px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      margin: 4px;
+    }
+    button:hover { background: #f0f0f0; }
+    button:disabled { opacity: 0.35; cursor: default; }
+    button:disabled:hover { background: #fff; }
+    #startBtn { color: #2d8c2d; border-color: #2d8c2d; }
+    #resetBtn { color: #b33; border-color: #b33; }
+    .done #timer { color: #b33; }
+    #lobby { margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px; }
+    #lobby button { font-size: 13px; padding: 6px 16px; }
+    #join-section { margin-top: 8px; display: none; }
+    #join-section input {
+      padding: 6px 8px;
+      font-size: 13px;
+      width: 80px;
+      text-transform: uppercase;
+      text-align: center;
+      letter-spacing: 2px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #room-info { display: none; margin-top: 8px; }
+    #room-code {
+      font-weight: bold;
+      font-size: 16px;
+      letter-spacing: 2px;
+      color: #e65100;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">Looking for activity time...</div>
+  <div id="role-badge"></div>
+  <div id="timer">--:--:--</div>
+  <div id="controls">
+    <button id="startBtn" disabled>Start</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  <div id="lobby">
+    <button id="hostBtn">Host</button>
+    <button id="joinToggleBtn">Join</button>
+    <div id="join-section">
+      <input id="codeInput" type="text" placeholder="CODE" maxlength="6" />
+      <button id="joinBtn">Go</button>
+    </div>
+  </div>
+  <div id="room-info">
+    <span id="room-code"></span>
+    <button id="leaveBtn">Leave</button>
+  </div>
+  <script src="config.js"></script>
+  <script src="supabase.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
