@@ -39,7 +39,13 @@ function injectTimer(minutes) {
       <button id="act-timer-join-btn">Go</button>
     </div>
     <div id="act-timer-room-info" style="display:none;">
-      <span id="act-timer-room-code"></span>
+      <div id="act-timer-share-label">Share Timer</div>
+      <div id="act-timer-code-pill">
+        <span id="act-timer-room-code"></span>
+        <button id="act-timer-copy-btn" title="Copy code">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+      </div>
       <button id="act-timer-leave">Leave</button>
     </div>
   `;
@@ -123,17 +129,52 @@ function injectTimer(minutes) {
     #act-timer-code-input::placeholder { color: rgba(255,255,255,0.4); }
     #act-timer-room-info {
       display: flex;
-      gap: 8px;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      margin-top: 4px;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    #act-timer-share-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 500;
+    }
+    #act-timer-code-pill {
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 9999px;
+      overflow: hidden;
+      width: 100%;
     }
     #act-timer-room-code {
-      font-size: 14px;
-      font-weight: bold;
-      letter-spacing: 2px;
-      color: #ffd54f;
+      flex: 1;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      color: #fff;
+      padding: 8px 16px;
+      text-align: center;
+    }
+    #act-timer-copy-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px !important;
+      border: none !important;
+      border-left: 1px solid rgba(255,255,255,0.15) !important;
+      border-radius: 0 !important;
+      background: rgba(99,140,255,0.25) !important;
+      color: #fff;
       cursor: pointer;
+      transition: background 0.15s;
+    }
+    #act-timer-copy-btn:hover {
+      background: rgba(99,140,255,0.45) !important;
+    }
+    #act-timer-copy-btn.copied {
+      background: rgba(76,175,80,0.35) !important;
     }
   `;
   document.head.appendChild(style);
@@ -323,12 +364,17 @@ function injectTimer(minutes) {
     if (e.key === "Enter") joinBtn.click();
   });
 
-  // --- Room code copy on click ---
-  roomCodeSpan.addEventListener("click", (e) => {
+  // --- Room code copy ---
+  const copyBtn = document.getElementById("act-timer-copy-btn");
+  copyBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     navigator.clipboard.writeText(roomCode);
-    roomCodeSpan.textContent = "Copied!";
-    setTimeout(() => { roomCodeSpan.textContent = roomCode; }, 1000);
+    copyBtn.classList.add("copied");
+    copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    setTimeout(() => {
+      copyBtn.classList.remove("copied");
+      copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+    }, 1500);
   });
 
   // --- Leave ---

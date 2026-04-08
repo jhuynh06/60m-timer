@@ -11,6 +11,7 @@ const lobbyDiv = document.getElementById("lobby");
 const roomInfoDiv = document.getElementById("room-info");
 const roomCodeSpan = document.getElementById("room-code");
 const leaveBtn = document.getElementById("leaveBtn");
+const copyBtn = document.getElementById("copyBtn");
 const roleBadge = document.getElementById("role-badge");
 
 let totalSeconds = 0;
@@ -167,10 +168,14 @@ codeInput.addEventListener("keydown", (e) => {
 });
 
 // --- Room code copy ---
-roomCodeSpan.addEventListener("click", () => {
+copyBtn.addEventListener("click", () => {
   navigator.clipboard.writeText(roomCode);
-  roomCodeSpan.textContent = "Copied!";
-  setTimeout(() => { roomCodeSpan.textContent = roomCode; }, 1000);
+  copyBtn.classList.add("copied");
+  copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  setTimeout(() => {
+    copyBtn.classList.remove("copied");
+    copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  }, 1500);
 });
 
 // --- Leave ---

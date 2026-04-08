@@ -57,14 +57,46 @@
       border: 1px solid #ccc;
       border-radius: 4px;
     }
-    #room-info { display: none; margin-top: 8px; }
-    #room-code {
-      font-weight: bold;
-      font-size: 16px;
-      letter-spacing: 2px;
-      color: #e65100;
-      cursor: pointer;
+    #room-info { display: none; margin-top: 12px; }
+    #share-label {
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 6px;
+      font-weight: 500;
     }
+    #code-pill {
+      display: flex;
+      align-items: center;
+      border: 1px solid #e0e0e0;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    #room-code {
+      flex: 1;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 3px;
+      color: #1a1a2e;
+      padding: 8px 16px;
+      text-align: center;
+    }
+    #copyBtn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border: none;
+      border-left: 1px solid #e0e0e0;
+      border-radius: 0;
+      background: #e8f0fe;
+      color: #1a73e8;
+      cursor: pointer;
+      margin: 0;
+      transition: background 0.15s;
+    }
+    #copyBtn:hover { background: #d2e3fc; }
+    #copyBtn.copied { background: #e6f4ea; color: #34a853; }
   </style>
 </head>
 <body>
@@ -84,7 +116,13 @@
     </div>
   </div>
   <div id="room-info">
-    <span id="room-code"></span>
+    <div id="share-label">Share Timer</div>
+    <div id="code-pill">
+      <span id="room-code"></span>
+      <button id="copyBtn" title="Copy code">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+    </div>
     <button id="leaveBtn">Leave</button>
   </div>
   <script src="config.js"></script>
