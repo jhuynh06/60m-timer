@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "matches": ["*://canvas.calpoly.edu/*", "*://*.instructure.com/*"],
-      "js": ["config.js", "supabase.js", "content.js"]
+      "js": ["content.js"]
     }
   ],
   "action": {

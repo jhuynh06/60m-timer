@@ -131,22 +131,48 @@ resetBtn.addEventListener("click", () => {
 });
 
 // --- +/- time adjust ---
+const adjustLabel = document.getElementById("adjust-label");
+const STEPS = [1, 5, 10, 15, 30];
+let stepIndex = 0;
+let adjustTimeout = null;
+
+function getStepSeconds() { return STEPS[stepIndex] * 60; }
+function getStepLabel() { return `${STEPS[stepIndex]}m`; }
+function updateAdjustLabel() { adjustLabel.textContent = getStepLabel(); }
+updateAdjustLabel();
+
+adjustLabel.addEventListener("click", () => {
+  stepIndex = (stepIndex + 1) % STEPS.length;
+  updateAdjustLabel();
+});
+
+function flashAdjust(text) {
+  adjustLabel.textContent = text;
+  clearTimeout(adjustTimeout);
+  adjustTimeout = setTimeout(updateAdjustLabel, 1200);
+}
+
 plusBtn.addEventListener("click", () => {
   if (role === "guest") return;
-  remainingSeconds += 60;
-  totalSeconds += 60;
+  const step = getStepSeconds();
+  remainingSeconds += step;
+  totalSeconds += step;
   chrome.storage.local.set({ timerRemaining: remainingSeconds });
   if (role === "host") syncState(roomCode, { remaining: remainingSeconds });
+  flashAdjust(`+${STEPS[stepIndex]}:00`);
   render();
 });
 
 minusBtn.addEventListener("click", () => {
   if (role === "guest") return;
-  if (remainingSeconds > 60) {
-    remainingSeconds -= 60;
-    if (totalSeconds > 60) totalSeconds -= 60;
+  const step = getStepSeconds();
+  if (remainingSeconds > step) {
+    remainingSeconds -= step;
+    if (totalSeconds > step) totalSeconds -= step;
+    flashAdjust(`-${STEPS[stepIndex]}:00`);
   } else {
     remainingSeconds = 0;
+    flashAdjust("0:00");
   }
   chrome.storage.local.set({ timerRemaining: remainingSeconds });
   if (role === "host") syncState(roomCode, { remaining: remainingSeconds });
